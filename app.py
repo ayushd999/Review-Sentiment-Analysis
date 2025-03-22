@@ -1,118 +1,103 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[8]:
-
-
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import confusion_matrix
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from flask import Flask, render_template, request
-import pickle
-from sklearn.feature_extraction.text import TfidfVectorizer
 import os
-
-
-# In[ ]:
-
-
-
+import pickle
+import pandas as pd
+import requests
+from flask import Flask, render_template, request
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 app = Flask(__name__)
 
-
+# Ensure model and vectorizer are loaded
 def load_model():
     global model, vectorizer
-    if not os.path.exists("model.pkl") or not os.path.exists("vectorizer.pkl"):
-        main()
-    model = pickle.load(open("model.pkl", "rb"))
-    vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
 
+    model_path = os.path.join(os.getcwd(), "model.pkl")
+    vectorizer_path = os.path.join(os.getcwd(), "vectorizer.pkl")
 
-def main():
-    # Load dataset
-    csv_path = r"customer_reviews_sentiment_words.csv"
-    if not os.path.exists(csv_path):
-        print(f"Error: CSV file not found at {csv_path}")
-        sys.exit(1)
+    if not os.path.exists(model_path) or not os.path.exists(vectorizer_path):
+        print("❌ Error: Model or Vectorizer file is missing! Ensure they are uploaded.")
+        return
 
-    df = pd.read_csv(csv_path, encoding="utf-8")
+    with open(model_path, "rb") as model_file:
+        model = pickle.load(model_file)
 
-    # Check if required columns exist
-    if "review_text" not in df.columns or "sentiment" not in df.columns:
-        print("Error: CSV file must contain 'review_text' and 'sentiment' columns.")
-        sys.exit(1)
+    with open(vectorizer_path, "rb") as vectorizer_file:
+        vectorizer = pickle.load(vectorizer_file)
 
-    x = df["review_text"]
-    y = df["sentiment"]
+    print("✅ Model and Vectorizer loaded successfully!")
 
-    # Vectorize text data
-    vectorizer = TfidfVectorizer(stop_words="english", max_features=5000)
-    x_vector = vectorizer.fit_transform(x)
+load_model()
 
-    # Train model
-    xtrain, xtest, ytrain, ytest = train_test_split(x_vector, y, train_size=0.8, test_size=0.2, random_state=42)
-    model = LogisticRegression()
-    model.fit(xtrain, ytrain)
-
-    # Save model and vectorizer as pickle files
-    with open("model.pkl", "wb") as model_file:
-        pickle.dump(model, model_file)
-    with open("vectorizer.pkl", "wb") as vectorizer_file:
-        pickle.dump(vectorizer, vectorizer_file)
-
-    # Create storage for reviews
-    stored_reviews_path = "stored_reviews.csv"
-    if not os.path.exists(stored_reviews_path):
-        pd.DataFrame(columns=["Product", "Review", "Sentiment"]).to_csv(stored_reviews_path, index=False)
-
-    print("Pickle files 'model.pkl' and 'vectorizer.pkl' created successfully!")
-    print("Storage file 'stored_reviews.csv' created successfully!")
-
+RECAPTCHA_SECRET_KEY = "YOUR_SECRET_KEY"  # Replace with your actual reCAPTCHA Secret Key
 
 @app.route('/')
 def index():
-    df_reviews = pd.read_csv("stored_reviews.csv")
+    if os.path.exists("stored_reviews.csv"):
+        df_reviews = pd.read_csv("stored_reviews.csv")
+    else:
+        df_reviews = pd.DataFrame(columns=["Product", "Review", "Sentiment"])
     return render_template('index.html', reviews=df_reviews.to_dict(orient='records'))
-
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    review_text = request.form['review']
-    product_name = request.form['product']
-    vec = vectorizer.transform([review_text])
-    pred = model.predict(vec)[0]
-    sentiment = "Positive" if pred == 1 else "Negative" if pred == 0 else "Neutral"
+    try:
+        review_text = request.form.get("review")
+        product_name = request.form.get("product")
+        recaptcha_response = request.form.get("g-recaptcha-response")  # Captcha response
 
-    # Store the review
-    df_reviews = pd.read_csv("stored_reviews.csv")
-    new_entry = pd.DataFrame({"Product": [product_name], "Review": [review_text], "Sentiment": [sentiment]})
-    df_reviews = pd.concat([df_reviews, new_entry], ignore_index=True)
-    df_reviews.to_csv("stored_reviews.csv", index=False)
+        # Verify reCAPTCHA with Google
+        recaptcha_verify_url = "https://www.google.com/recaptcha/api/siteverify"
+        recaptcha_payload = {"secret": RECAPTCHA_SECRET_KEY, "response": recaptcha_response}
+        recaptcha_result = requests.post(recaptcha_verify_url, data=recaptcha_payload).json()
 
-    return render_template('index.html', prediction=sentiment, reviews=df_reviews.to_dict(orient='records'))
+        if not recaptcha_result.get("success"):
+            return "Error: reCAPTCHA verification failed. Please try again.", 400
 
+        if not review_text or not product_name:
+            return "Error: Missing product name or review!", 400
+
+        # Ensure vectorizer is loaded before using it
+        if 'vectorizer' not in globals():
+            return "Error: Vectorizer not loaded. Please check the model files.", 500
+
+        vec = vectorizer.transform([review_text])  # Fix: Ensure vectorizer is loaded
+        pred = model.predict(vec)[0]
+        sentiment = "Positive" if pred == 1 else "Negative" if pred == 0 else "Neutral"
+
+        # Save the review
+        stored_reviews_path = "stored_reviews.csv"
+        if not os.path.exists(stored_reviews_path):
+            df_reviews = pd.DataFrame(columns=["Product", "Review", "Sentiment"])
+        else:
+            df_reviews = pd.read_csv(stored_reviews_path)
+
+        new_entry = pd.DataFrame({"Product": [product_name], "Review": [review_text], "Sentiment": [sentiment]})
+        df_reviews = pd.concat([df_reviews, new_entry], ignore_index=True)
+        df_reviews.to_csv(stored_reviews_path, index=False)
+
+        return render_template('index.html', prediction=sentiment, reviews=df_reviews.to_dict(orient='records'))
+
+    except Exception as e:
+        return f"Internal Server Error: {str(e)}", 500
 
 @app.route('/search', methods=['GET'])
 def search():
     query = request.args.get('query', '')
-    df_reviews = pd.read_csv("stored_reviews.csv")
+    stored_reviews_path = "stored_reviews.csv"
+
+    if not os.path.exists(stored_reviews_path):
+        return render_template('index.html', reviews=[])
+
+    df_reviews = pd.read_csv(stored_reviews_path)
     results = df_reviews[df_reviews["Product"].str.contains(query, case=False, na=False)]
     return render_template('index.html', reviews=results.to_dict(orient='records'))
 
-
 if __name__ == "__main__":
     load_model()
-    app.run()
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+
 
 
