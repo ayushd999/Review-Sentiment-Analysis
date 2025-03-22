@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sentiment Analysis</title>
     <script src="https://translate.google.com/translate_a/element.js?cb=initTranslate"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -151,6 +152,7 @@
         <form action="/predict" method="post">
             <input type="text" name="product" placeholder="Enter Product Name" required>
             <textarea name="review" rows="4" placeholder="Write your review here..." required></textarea>
+            <div class="g-recaptcha" data-sitekey="6LdW3vwqAAAAADjJBGKe5D515_aGRIyDLQR2z58R"></div>
             <button type="submit">Analyze Sentiment</button>
         </form>
 
@@ -166,24 +168,6 @@
             <input type="text" name="query" placeholder="Search for a product">
             <button type="submit">Search</button>
         </form>
-
-        <h3>Stored Reviews:</h3>
-        <table>
-            <tr>
-                <th>Product</th>
-                <th>Review</th>
-                <th>Sentiment</th>
-            </tr>
-            {% for review in reviews %}
-            <tr>
-                <td>{{ review["Product"] }}</td>
-                <td>{{ review["Review"] }}</td>
-                <td style="color: {% if review['Sentiment'] == 'Positive' %}green{% elif review['Sentiment'] == 'Negative' %}red{% else %}gray{% endif %};">
-                    {{ review["Sentiment"] }}
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
     </div>
 
     <button class="top-button" onclick="scrollToTop()">↑</button>
@@ -203,16 +187,6 @@
         function scrollToTop() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-
-        window.onscroll = function() {
-            const topButton = document.querySelector('.top-button');
-            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-                topButton.style.display = "block";
-            } else {
-                topButton.style.display = "none";
-            }
-        };
     </script>
-
 </body>
 </html>
