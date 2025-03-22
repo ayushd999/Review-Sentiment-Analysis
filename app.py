@@ -113,7 +113,7 @@ def search():
 
 if __name__ == "__main__":
     load_model()
-     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+     app.run()
 
 
 
