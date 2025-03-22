@@ -5,5 +5,4 @@ textblob
 gunicorn
 matplotlib
 seaborn
-pickle
 os
