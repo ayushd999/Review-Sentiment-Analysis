@@ -4,3 +4,6 @@ scikit-learn
 textblob
 gunicorn
 matplotlib
+seaborn
+pickle
+os
