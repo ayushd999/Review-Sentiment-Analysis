@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis</title>
+    <script src="https://translate.google.com/translate_a/element.js?cb=initTranslate"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 60%;
+            background: #1e1e1e;
+            padding: 20px;
+            box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-top: 20px;
+            position: relative;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        h2 {
+            text-align: center;
+            color: #00bcd4;
+        }
+
+        input, textarea, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background-color: #222;
+            color: #fff;
+        }
+
+        button {
+            background-color: #00bcd4;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
+
+        button:hover {
+            background-color: #008ba3;
+            transform: scale(1.05);
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            background: #222;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #444;
+            text-align: left;
+        }
+
+        th {
+            background: #00bcd4;
+            color: white;
+        }
+
+        .search-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-bar input {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+
+        .language-bar {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .top-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #00bcd4;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            transition: transform 0.3s;
+        }
+
+        .top-button:hover {
+            transform: scale(1.1);
+        }
+
+        .footer {
+            width: 100%;
+            background: #181818;
+            color: #ffffff;
+            text-align: center;
+            padding: 15px;
+            margin-top: 30px;
+        }
+
+        .footer a {
+            color: #00bcd4;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="language-bar">
+            <label for="language">Select Language:</label>
+            <div id="google_translate_element"></div>
+        </div>
+
+        <h2>Product Review Sentiment Analysis</h2>
+
+        <form action="/predict" method="post">
+            <input type="text" name="product" placeholder="Enter Product Name" required>
+            <textarea name="review" rows="4" placeholder="Write your review here..." required></textarea>
+            <button type="submit">Analyze Sentiment</button>
+        </form>
+
+        {% if prediction %}
+            <h3>Predicted Sentiment: 
+                <span style="color: {% if prediction == 'Positive' %}green{% elif prediction == 'Negative' %}red{% else %}gray{% endif %};">
+                    {{ prediction }}
+                </span>
+            </h3>
+        {% endif %}
+
+        <form action="/search" method="get" class="search-bar">
+            <input type="text" name="query" placeholder="Search for a product">
+            <button type="submit">Search</button>
+        </form>
+
+        <h3>Stored Reviews:</h3>
+        <table>
+            <tr>
+                <th>Product</th>
+                <th>Review</th>
+                <th>Sentiment</th>
+            </tr>
+            {% for review in reviews %}
+            <tr>
+                <td>{{ review["Product"] }}</td>
+                <td>{{ review["Review"] }}</td>
+                <td style="color: {% if review['Sentiment'] == 'Positive' %}green{% elif review['Sentiment'] == 'Negative' %}red{% else %}gray{% endif %};">
+                    {{ review["Sentiment"] }}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <button class="top-button" onclick="scrollToTop()">↑</button>
+
+    <div class="footer">
+        <p>&copy; 2025 Team Code Blooded. All Rights Reserved.</p>
+        <p><a href="https://www.amazon.in" target="_blank">Amazon</a> | 
+           <a href="https://www.flipkart.com" target="_blank">Flipkart</a> | 
+           <a href="https://www.reliancedigital.in" target="_blank">Reliance Digital</a></p>
+    </div>
+
+    <script>
+        function initTranslate() {
+            new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
+        }
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.onscroll = function() {
+            const topButton = document.querySelector('.top-button');
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+                topButton.style.display = "block";
+            } else {
+                topButton.style.display = "none";
+            }
+        };
+    </script>
+
+</body>
+</html>
