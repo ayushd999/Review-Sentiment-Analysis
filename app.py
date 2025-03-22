@@ -30,13 +30,31 @@ import os
 
 app = Flask(__name__)
 
-
 def load_model():
     global model, vectorizer
-    if not os.path.exists("model.pkl") or not os.path.exists("vectorizer.pkl"):
-        main()
-    model = pickle.load(open("model.pkl", "rb"))
-    vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
+
+    model_path = "model.pkl"
+    vectorizer_path = "vectorizer.pkl"
+
+    if not os.path.exists(model_path):
+        print("❌ Error: model.pkl is missing!")
+        return
+    
+    if not os.path.exists(vectorizer_path):
+        print("❌ Error: vectorizer.pkl is missing!")
+        return
+
+    with open(model_path, "rb") as model_file:
+        model = pickle.load(model_file)
+
+    with open(vectorizer_path, "rb") as vectorizer_file:
+        vectorizer = pickle.load(vectorizer_file)
+
+    print("✅ Model and Vectorizer loaded successfully!")
+
+# Load the model when the app starts
+load_model()
+
 
 
 def main():
