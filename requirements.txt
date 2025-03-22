@@ -5,3 +5,4 @@ textblob
 gunicorn
 matplotlib
 seaborn
+requests
