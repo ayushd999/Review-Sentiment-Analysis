@@ -58,7 +58,7 @@ load_model()
 
 def main():
     # Load dataset
-    csv_path = r"C:\Users\Ayush Das\Music\sentiment_analysis\customer_reviews_sentiment_words.csv"
+    csv_path = r"C:\Users\Ayush Das\Music\sentiment_analysis\customer_reviews.csv"
     if not os.path.exists(csv_path):
         print(f"Error: CSV file not found at {csv_path}")
         sys.exit(1)
